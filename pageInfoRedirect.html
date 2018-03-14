@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title></title>
+	<style type="text/css" media="screen">
+		*{margin: 0; padding: 0;}
+		body {position: relative;}
+		#body-info{background-image: url('bg_info.jpg'); background-repeat: no-repeat; background-size: cover; position: relative;}
+		.body-box {width: 100%; height: 50%; display: block;}	
+		.body-box .body-box-inline{display: inline-block; position: relative;}
+		.body-box .body-box-small{width: 40%; height: 100%;}
+		.body-box .body-box-big{width: 60%; height: 100%;}
+		.body-box .body-float-left{float: left;}
+		.body-box .body-float-right{float: right;}
+
+		.body-box .span-right-top{position: absolute; bottom: 20%; left: 10%; transform: translateY(-50%); font-size: 1.75em; color: #fff; padding: 0 20% 10px 0; border-bottom: 2px solid #fff; z-index: 10000;}
+		.body-box .span-left-bottom{position: absolute; top: 20%; right: 40%; color: #fff; font-weight: bold; z-index: 10000; }
+
+		.body-mask{position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 9999;}
+		.body-mask .body-box-inline {opacity: 0.72;}
+		.body-mask .body-box-left-top {background-color: rgb(245, 138, 123);}
+		.body-mask .body-box-right-top {text-align: left; position: relative; background-color: rgb(235, 180, 134);}
+		.body-mask .body-box-left-bottom {background-color: rgb(114, 150, 203);}
+		.body-mask .body-box-right-bottom {background-color: rgb(102, 177, 145); position: relative;}
+		@-webkit-keyframes fadeIn {
+			0% { opacity: 0.72; }
+			50% { opacity: 0.1; }
+			100% { opacity: 0.72; }
+		}
+		.body-mask .body-box .body-box-inline:hover {cursor: pointer; -webkit-animation-name: fadeIn; -webkit-animation-duration: 3s; -webkit-animation-iteration-count: 999; -webkit-animation-delay: 0s;}
+
+	</style>
+</head>
+<body>
+	<div id="body-info">
+		<div class="body-box body-top">
+			<div class="body-box-inline body-box-small body-float-left">
+			</div>
+			<div class="body-box-inline body-box-big body-float-right">
+				<span class="span-right-top">当前访问页面不存在，请检查</span>
+			</div>
+		</div>
+		<div class="body-box bod-bottom">
+			<div class="body-box-inline body-box-small body-float-right">
+			</div>
+			<div class="body-box-inline body-box-big body-float-left">
+				<span class="span-left-bottom">待 <label id="delay">3</label>s 后跳转</span>
+			</div>
+		</div>
+	</div>
+	<div class="body-mask">
+		<div class="body-box body-top">
+			<div class="body-box-inline body-box-small body-float-left body-box-left-top">
+			</div>
+			<div class="body-box-inline body-box-big body-float-right body-box-right-top">
+			</div>
+		</div>
+		<div class="body-box bod-bottom">
+			<div class="body-box-inline body-box-small body-float-right body-box-left-bottom">
+			</div>
+			<div class="body-box-inline body-box-big body-float-left body-box-right-bottom">
+			</div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+		window.onload = function (){
+			document.getElementById('body-info').style.height = document.documentElement.clientHeight + 'px';
+
+			var delay_time = 3;
+			var timehandler = setInterval(function () {
+				if (delay_time) {
+					delay_time--;
+					document.getElementById('delay').innerHTML = delay_time;
+				} else {
+					clearInterval(timehandler);
+				}
+			}, 1000);
+		};
+		window.onresize = function (){
+			document.getElementById('body-info').style.height = document.documentElement.clientHeight + 'px';
+		};
+	</script>	
+</body>
+</html>
