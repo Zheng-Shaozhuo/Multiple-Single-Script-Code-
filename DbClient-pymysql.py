@@ -87,14 +87,23 @@ class DbClient(object):
         return self.insert(table, obj.__dict__)
 
 
-    # def batch_insert(self, table, params):
-    #     """
-    #     批量插入数据
-    #     :arg table:数据表
-    #     :arg params：要插入的参数
-    #     return:error/1
-    #     """
-    #     TODO
+    def batch_insert(self, table, params):
+        """
+        批量插入数据
+        :arg table:数据表
+        :arg params：要插入的参数
+        return:error/1
+        """
+        if isinstance(params, list) is False or not params: return False
+
+        properties = ','.join(pymysql.escape_string(s) for s in params[0].keys())
+        values = []
+        for param in params:
+            values.append("('{}')".format("','".join([pymysql.escape_string(str(s)) for s in param.values()])))
+            
+        str_sql = 'insert into {} ({}) values {}'.format(table, properties, ','.join(values))
+        result = self.execute(str_sql)
+        return result
 
 
     def update(self, table, conds, params):
