@@ -1,0 +1,231 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+@License :   (C)Copyright 2018-2022
+@Desc    :   Auto
+"""
+
+import os
+import sys
+import threading
+
+# pip install pyautogui -i https://pypi.tuna.tsinghua.edu.cn/simple/    # 依赖包有些多!!!
+import pyautogui
+# pip install opencv-python -i https://pypi.tuna.tsinghua.edu.cn/simple/
+import cv2
+import numpy as np
+
+# pip install Pillow
+from PIL import Image
+
+# pip install PyUserInput
+from pymouse import PyMouse
+# pip install pynput
+from pynput import keyboard, mouse
+from pynput.mouse import Button
+
+sys.path.append('/Users/zhengshaozhuo/Documents/B167629/Codes/Python/utils')
+
+mouseOp = PyMouse()
+def mouseLeftClick(x, y):
+    """
+    鼠标左键
+    """
+    mouseOp.click(x, y, button=1)
+
+def mouseRightClick(x, y):
+    """
+    鼠标右键
+    """
+    mouseOp.click(x, y, button=3)
+
+def listenKeyboard():
+    """
+    监听键盘
+    """
+    def on_press(key):
+        """
+        按 esc 键退出
+        """
+        print('{0} pressed'.format(key))
+        if key == keyboard.Key.esc:
+            return False
+    print ("listenKeyboard Enter.")
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+def listenMouse():
+    """
+    监听鼠标
+    """
+    def on_click(x, y, button, pressed):
+        """
+        按鼠标中键退出
+        """
+        if button == Button.middle: return False
+        if pressed:
+            print('Pressed {0} at {1}'.format(button, (x, y)))
+        else:
+            print('Released {0} at {1}'.format(button, (x, y)))
+
+    print ("listenMouse Enter.")
+    with mouse.Listener(on_click=on_click) as listener:
+        listener.join()
+
+def screenShot(x, y, width, height, imagePath = ""):
+    """
+    屏幕截图
+    """
+    img = pyautogui.screenshot(region=(x, y, width, height))
+    img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
+    if imagePath: cv2.imwrite(imagePath, img); # cv2.waitKey(0)
+    return img
+
+def imageDiffByPixel(imagePath1, imagePath2):
+    """
+    图片pixel差异
+    """
+    def calcPixel(img):
+        """
+        计算pixel
+        """
+        image_his = img.histogram()
+        print (image_his, len(image_his))
+        sum_pixel = 0
+        for i in range(0, len(image_his)):
+            sum_pixel += image_his[i]
+        return sum_pixel
+
+    degree = 0
+    if not os.path.isfile(imagePath1) or not os.path.isfile(imagePath2): return degree
+    img1 = Image.open(imagePath1)
+    img2 = Image.open(imagePath2)
+    img1 = img1.convert('L')
+    img2 = img2.convert('L')
+    # img1 = img1.resize((width, height)).convert('L')
+    # img2 = img2.resize((width, height)).convert('L')
+    img1SumPixel = calcPixel(img1)
+    img2SumPixel = calcPixel(img2)
+    print (img1SumPixel, img2SumPixel)
+    return 1 - (abs(img1SumPixel - img2SumPixel) * 1.0 / max(img1SumPixel, img2SumPixel))
+    
+
+def imageDiffByGrayHist(img1, img2, size=(256, 256)):
+    """
+    计算灰度直方图
+    """
+    hist1 = cv2.calcHist([img1], [0], None, [256], [0.0, 255.0])
+    hist2 = cv2.calcHist([img2], [0], None, [256], [0.0, 255.0])
+    degree = 0
+    for i in range(len(hist1)):
+        degree += 1 if (hist1[i] == hist2[i]) else (1 - abs(hist1[i] - hist2[i])) / max(hist1[i], hist2[i])
+    return degree / len(hist1)
+
+
+def imageDiffByHistSplit(img1, img2, size=(256, 256)):
+    """
+    计算直方图相似度
+    """
+    img1 = cv2.resize(img1, size)
+    img2 = cv2.resize(img2, size)
+    subImg1 = cv2.split(img1)
+    subImg2 = cv2.split(img2)
+    degree = 0
+    for si1, si2 in zip(subImg1, subImg2):
+        degree += imageDiffByGrayHist(si1, si2)
+    return degree / 3
+
+def cmpHash(hash1, hash2):
+    """
+    Hash串比较; 每张图片生成唯一指纹, 同序值值越趋同, 越相似 (汉明距离)
+    取值范围 0 - len(hash1), 越小越相似
+    """
+    degree = 0
+    if len(hash1) != len(hash2): return degree
+    for i in range(len(hash1)):
+        degree += int(hash1[i] != hash2[i])
+    degree = 1 - (degree * 1.0 / len(hash1))
+    return degree
+
+def imageDiffByAvgHash(img1, img2):
+    """
+    计算均值哈希算法
+    图片缩放为 8 * 8
+    """
+    def avgHash(img):
+        """
+        计算均值哈希算法
+        """
+        img = cv2.resize(img, (8, 8), interpolation=cv2.INTER_AREA)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        s, _hash = 0, ''
+        # 遍历累加求像素和
+        for i in range(8):
+            for j in range(8):
+                s += gray[i, j]
+        # 求平均值
+        avg = s / 64
+        # 灰度大于均值为1, 否则为0, 生成图片hash
+        for i in range(8):
+            for j in range(8):
+                _hash += '1' if gray[i, j] > avg else '0'
+        return _hash
+    return cmpHash(avgHash(img1), avgHash(img2))
+
+def imageDiffByDctHash(img1, img2):
+    """
+    计算差值哈希算法
+    """
+    def dctHash(img):
+        """
+        计算差值哈希算法
+        """
+        img = cv2.resize(img, (9, 8), interpolation=cv2.INTER_AREA)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _hash = ''
+        for i in range(8):
+            for j in range(8):
+                _hash += '1' if gray[i, j] > gray[i, j + 1] else '0'
+        return _hash
+    return cmpHash(dctHash(img1), dctHash(img2))
+
+def imageDiffByPerceptualHash(img1, img2):
+    """
+    计算感知哈希算法
+    """
+    def perceptualHash(img):
+        """
+        计算感知哈希算法
+        """
+        img = cv2.resize(img, (32, 32), interpolation=cv2.INTER_AREA)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        _hash = []
+        dct = cv2.dct(np.float32(gray))
+        dct_roi = dct[0:8, 0:8]
+        avreage = np.mean(dct_roi)
+        for i in range(dct_roi.shape[0]):
+            for j in range(dct_roi.shape[1]):
+                _hash.append(1 if dct_roi[i, j] > avreage else 0)
+        return _hash
+    return cmpHash(perceptualHash(img1), perceptualHash(img2))
+
+def main():
+    """
+    """
+    # th = threading.Thread(target=listenKeyboard)    # 监听键盘
+    # th = threading.Thread(target=listenMouse)    # 监听鼠标
+    # th.setDaemon(True)
+    # th.start()
+    # th.join()
+    # screenShot(0, 0, 1220, 880, "./screen.png")
+    # print (imageDiffByPixel("./screen.png", "./screen1.png"))
+
+    print("main thread end")
+
+
+
+    pass
+
+if __name__ == '__main__':
+    main()
