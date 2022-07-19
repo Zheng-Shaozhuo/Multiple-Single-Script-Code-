@@ -16,6 +16,9 @@ import pyautogui
 import cv2
 import numpy as np
 
+# pip install easyocr -i https://pypi.tuna.tsinghua.edu.cn/simple/
+from easyocr import Reader
+
 # pip install Pillow
 from PIL import Image
 
@@ -79,6 +82,14 @@ def screenShot(x, y, width, height, imagePath = ""):
     img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
     if imagePath: cv2.imwrite(imagePath, img); # cv2.waitKey(0)
     return img
+
+readerOcr = Reader(['chi_sim'], gpu=False)
+def imageOrcByPath(imagePath):
+    """
+    图片识别
+    """
+    img = cv2.imread(imagePath)
+    return readerOcr.readtext(img)
 
 def imageDiffByPixel(imagePath1, imagePath2):
     """
