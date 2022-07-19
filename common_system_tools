@@ -25,8 +25,6 @@ from pymouse import PyMouse
 from pynput import keyboard, mouse
 from pynput.mouse import Button
 
-sys.path.append('/Users/zhengshaozhuo/Documents/B167629/Codes/Python/utils')
-
 mouseOp = PyMouse()
 def mouseLeftClick(x, y):
     """
